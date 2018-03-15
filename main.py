@@ -1,7 +1,9 @@
 import logging
 import os
+import pandas as pd
 from config import startdir, BLACKLIST, bkf_table
 from xlsparser import GpXlsConfig, GpXlsParser
+from db import open_db, close_db
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
@@ -42,7 +44,7 @@ def get_filenames(startdir):
     filenames = list(filter(not_in_blacklist, filenames))
     return filenames
 
-def upload_df(df):
+def upload_df(df: pd.DataFrame):
     fields = ', '.join(df.columns)
     values_fields = [f'%({field})s' for field in df.columns]
     values_fields = ', '.join(values_fields)
@@ -52,6 +54,13 @@ def upload_df(df):
     # вот так: sql = "INSERT INTO TABLE_A(COL_A,COL_B) VALUES(%s, %s)"
     # a_cursor.execute(sql, (val1, val2))
     print(SQL)
+    # чтобы cursor.execute() это ел, нужно NaN заменить на None
+    df = df.where(df.notnull(), None)
+    cur, conn = open_db()
+    for index, row in df.iterrows():
+        cur.execute(SQL, row.to_dict())
+    conn.commit()
+    close_db(cur, conn)
 
 if __name__ == "__main__":
     filenames = get_filenames(startdir)
