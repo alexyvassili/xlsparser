@@ -59,6 +59,7 @@ class GpXlsConfig:
             `bkf_branch_id` int(11) DEFAULT NULL COMMENT 'id из gp_branches',  
         """
         TAIL = """,
+            `bkf_row_num` int(11) DEFAULT NULL COMMENT 'Номер строки в файле',
             `bkf_filename` varchar(255) DEFAULT NULL COMMENT 'Имя файла',
              PRIMARY KEY (`bkf_id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Основные средства ДО';
