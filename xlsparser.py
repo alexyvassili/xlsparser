@@ -20,7 +20,6 @@ class GpXlsParser:
         self.config = config.get_config(self.file)
         self.branch_name = self.config['branch_name']
         self.multirow = 0
-        self.debug_strings = []
 
     @property
     def key_field(self):
@@ -43,7 +42,7 @@ class GpXlsParser:
         проблема: если документ начинается с нескольких пустых строк, то парсер xls считает их за одну,
         соответственно, индекс найденного заголовка не будет совпадать с реальным
         поэтому, вызываем функцию, смещаясь вниз, пока не получим нужное поле в заголовке датафрейма"""
-        logging.warning(f'Reading {self.file}...')
+        logging.info(f'Reading {self.file}...')
         df = pd.read_excel(self.file, skiprows=self.skip, dtype=str)
         logging.debug(f'COLS IN DF: {df.columns}')
         # пропускаем шапку таблицы
@@ -174,12 +173,12 @@ class GpXlsParser:
         """на данном этапе все поля в датафрейме - str, а значения NaN - 'nan'
         делаем из 'nan' настоящее а из str - decimal, хотя вдруг SQL умеет сам переводить??"""
         self.df = self.df.replace('nan', np.nan)
-        logging.info(f"DECIMAL: {self.config['decimal_fields']}")
+        logging.debug(f"DECIMAL: {self.config['decimal_fields']}")
         for field in self.config['decimal_fields']:
             try:
                 self.df[field] = self.df[field].astype(float)
             except ValueError as e:
-                logging.warning(f"Value Error on {field}: {e}\nReplacing ',' and ' '")
+                logging.info(f"Value Error on {field}: {e}\nReplacing ',' and ' '")
                 self.df[field] = self.df[field].str.replace(' ', '')
                 self.df[field] = self.df[field].str.replace(',', '.')
                 self.df[field] = self.df[field].astype(float)
@@ -188,7 +187,7 @@ class GpXlsParser:
         """делаем так, чтобы index совпадал с номерами строк в xls"""
         # устанавливаем delta
         self.delta += self.skip
-        logging.info(f'DELTA {self.delta}')
+        logging.debug(f'DELTA {self.delta}')
         self.df.index += self.delta
 
     def _df_autofill(self):
@@ -199,7 +198,6 @@ class GpXlsParser:
                 nans_count = self.df[df_field].isnull().sum()
                 if nans_count:
                     log = f"FILLING {nans_count} NaN's in {field}"
-                    self.debug_strings.append(log)
                     logging.info(log)
                     self.df[df_field] = self.df[df_field].fillna(method='ffill')
 

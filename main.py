@@ -6,7 +6,7 @@ from xlsparser import GpXlsConfig, GpXlsParser
 from db import open_db, close_db
 
 logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 class XlsIterator:
@@ -23,7 +23,7 @@ class XlsIterator:
         if self.current >= self.end:
             raise StopIteration
 
-        logging.warning(f"Reading file {self.current+1} of {self.end}")
+        logging.info(f"Reading file {self.current+1} of {self.end}")
         parser = GpXlsParser(self.filenames[self.current], self.config)
         df = parser.parse()
         self.current += 1
