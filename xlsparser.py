@@ -42,7 +42,7 @@ class GpXlsParser:
         проблема: если документ начинается с нескольких пустых строк, то парсер xls считает их за одну,
         соответственно, индекс найденного заголовка не будет совпадать с реальным
         поэтому, вызываем функцию, смещаясь вниз, пока не получим нужное поле в заголовке датафрейма"""
-        logging.info(f'Reading {self.file}...')
+        print(f'Reading {self.file}...')
         df = pd.read_excel(self.file, skiprows=self.skip, dtype=str)
         logging.debug(f'COLS IN DF: {df.columns}')
         # пропускаем шапку таблицы
@@ -136,6 +136,7 @@ class GpXlsParser:
             except KeyError:
                 # TODO: вот здесь можно бросить исключение
                 logging.info('NO VARIABLE FIELDS')
+                raise ValueError(f'Mapping Error: Unmapped fields: {unmapped}')
             else:
                 self._mapped()
         else:
@@ -171,17 +172,23 @@ class GpXlsParser:
 
     def _init_df_types(self):
         """на данном этапе все поля в датафрейме - str, а значения NaN - 'nan'
-        делаем из 'nan' настоящее а из str - decimal, хотя вдруг SQL умеет сам переводить??"""
+        делаем из 'nan' настоящее а из str - float"""
         self.df = self.df.replace('nan', np.nan)
         logging.debug(f"DECIMAL: {self.config['decimal_fields']}")
         for field in self.config['decimal_fields']:
             try:
                 self.df[field] = self.df[field].astype(float)
             except ValueError as e:
-                logging.info(f"Value Error on {field}: {e}\nReplacing ',' and ' '")
+                logging.info(f"Value Error on {field}: {e}")
+                logging.info("Replacing ',' and ' '")
                 self.df[field] = self.df[field].str.replace(' ', '')
                 self.df[field] = self.df[field].str.replace(',', '.')
                 self.df[field] = self.df[field].astype(float)
+            finally:
+                # на некоторых значениях вылезал MySQL Warning 1265, "Data truncated for column
+                # так как числа хранились иногда в виде "338394.51999999996",
+                # который в два десятичных разряда не помещается. Округляем.
+                self.df[field] = self.df[field].round(2)
 
     def _set_index(self):
         """делаем так, чтобы index совпадал с номерами строк в xls"""
