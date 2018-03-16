@@ -1,3 +1,4 @@
+import logging
 import pandas as pd
 import os
 from db import open_db, close_db
@@ -14,13 +15,18 @@ NEW_STRING_SEPARATOR =  '$$'# новая строка в csv конфиге от
 class GpXlsConfig:
     """Считывает файл конфигурации с полями, хранит маппер"""
     def __init__(self, startdir=startdir, csv=config_file):
+        logging.info('INITIALIZE CONFIG')
         branch_config = BranchConfig(startdir, gp_branches_table)
+        logging.info('CREATING BRANCH TABLE')
         branch_config.create_branch_table()
+        logging.info('UPLOADING GP_BRANCHES')
         branch_config.fill_gp_branches()
+        logging.info(f'LOADING FIELDS CONFIG FROM {csv}')
         fields = pd.read_csv(os.path.join(startdir, csv), sep=';', index_col=0, encoding='cp1251')
         self.fields = fields.applymap(lambda x: x.replace(NEW_STRING_SEPARATOR, '\n') if type(x) == str else x)
         self.branches_indexes = branch_config.branches_indexes
         self.startdir = startdir
+        logging.info('CREATING BKF TABLE')
         self.create_bkf_table()
 
     def get_config(self, filename):
