@@ -14,7 +14,10 @@ logger.setLevel(logging.WARNING)
 
 warnings.filterwarnings('error', category=MySQLdb.Warning)
 
+
 class XlsIterator:
+    """Итератор, проходит по списку xls файлов и парсит их по очереди.
+    Никакой проверки входных данных не делается!"""
     def __init__(self, filenames, start=0):
         print('Initializing...')
         self.current = start
