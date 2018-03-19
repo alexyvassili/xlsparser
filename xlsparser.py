@@ -218,14 +218,23 @@ class GpXlsParser:
         self.df['bkf_row_num'] = self.df.index
         self.df['bkf_branch_id'] = self.config['branch_id']
         self.df['bkf_filename'] = self.filename
+        self.df.name = self.config['branch_name']
 
-    def parse(self):
+    def parse(self, queue=None):
+        print('Parsing {}...'.format(self.filename))
         self.df = self._findheader()
         # определяем заголовок из нескольких строк, если он есть
         self.multirow = self._find_multirow_header()
         # если индекс многострочный - переписываем его
         if self.multirow:
             self.df = self._rewrite_index()
+        if queue:
+            queue.put(self)
+        else:
+            return self  # FIXME: ну тут такой себе дизайн получился (см. XlsIterator)
+
+    def process(self):
+        print('Processing {}...'.format(self.filename))
         # проверяем, все ли поля найдены
         self._mapped()
         # удаляем нумерацию столбцов и прочий мусор в шапке
