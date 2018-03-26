@@ -12,12 +12,16 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger()
 logger.setLevel(logging.WARNING)
 
-warnings.filterwarnings('error', category=MySQLdb.Warning)
+# здесь нужно было превращать варнинги SQL в ошибки, для отладки
+# warnings.filterwarnings('error', category=MySQLdb.Warning)
 
 
 class XlsIterator:
     """Итератор, проходит по списку xls файлов и парсит их по очереди.
-    Никакой проверки входных данных не делается!"""
+    Никакой проверки входных данных не делается!
+    Класс был сделан для того, чтобы было удобно ходить по списку в юпитер ноутбуке, начиная с разных
+    значений и получая по одному датафрейму.
+    """
     def __init__(self, filenames, start=0):
         print('Initializing...')
         self.current = start
@@ -35,7 +39,7 @@ class XlsIterator:
         print()
         print(f"Reading file {self.current+1} of {self.end}")
         parser = GpXlsParser(self.filenames[self.current], self.config)
-        df = parser.parse().process()
+        df = parser.parse()
         self.current += 1
         return df
 
@@ -55,18 +59,16 @@ def get_filenames(startdir):
     return filenames
 
 
+def chunks(l, n):
+    """Yield successive n-sized chunks from l."""
+    for i in range(0, len(l), n):
+        yield l[i:i + n]
+
+
 def split_df(df, batch_size):
     """Разделяет датафрейм на списки словарей заданного размера"""
-    batches = []
-    batch = []
-    for index, row in df.iterrows():
-        batch.append(row.to_dict())
-        if index % batch_size == 0:
-            batches.append(batch.copy())
-            batch.clear()
-    if batch:
-        batches.append(batch)
-    return batches
+    full_batch = [row.to_dict() for index, row in df.iterrows()]
+    return chunks(full_batch, batch_size)
 
 
 def get_address_from_mysql_warning(warning: Warning):
@@ -117,8 +119,10 @@ def show_1265_warnings(warnings_):
 
 def upload_df_with_batches(SQL, df, queue=None, batch_size=500):
     # чтобы cursor.execute() это ел, нужно NaN заменить на None
+    # поскольку согласно stackoverflow, такая замена может вызвать некорректную работу датафрейма,
+    # мы это делаем непосредственно перед загрузкой
     df = df.where(df.notnull(), None)
-    batches = split_df(df, batch_size)
+    batches = list(split_df(df, batch_size))
     length = len(batches)
     logging.info(f'ALL ITEMS: {sum([len(batch) for batch in batches])} IN {length} BATCHES')
     logging.info(f'DF SHAPE: {df.shape}')
