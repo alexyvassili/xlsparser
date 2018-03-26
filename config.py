@@ -2,11 +2,9 @@ import logging
 import pandas as pd
 import os
 from db import open_db, close_db
+from secure import gp_branches_table, bkf_table, \
+    startdir, BLACKLIST, bkf_table_comment, branch_table_comment
 
-gp_branches_table = 'bkf_Gp_branches'
-bkf_table = 'bkf_Branch_key_facilities'
-startdir = "/mnt/data/python/antirutina/Нормирование/Основные средства ДО"
-BLACKLIST = ['Газпром добыча Краснодар', 'probe', '~$', '.~']
 config_file = 'fields.csv'
 ALTER_CONFIG_SUFFIX = '//add'  # суффикс для колонки с альтернативным набором полей
 NEW_STRING_SEPARATOR =  '$$'# новая строка в csv конфиге отделяется через $$ чтобы удобнее было набирать
@@ -68,8 +66,8 @@ class GpXlsConfig:
             `bkf_row_num` int(11) DEFAULT NULL COMMENT 'Номер строки в файле',
             `bkf_filename` varchar(255) DEFAULT NULL COMMENT 'Имя файла',
              PRIMARY KEY (`bkf_id`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Основные средства ДО';
-        """
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='{}';
+        """.format(bkf_table_comment)
 
         fields_sql = [f"    `{ix}` {field['TYPE']} DEFAULT NULL COMMENT '{field['DESCRIPTION']}'"
                       for ix, field in self.fields.iterrows()]
@@ -94,7 +92,7 @@ class BranchConfig:
             `gpb_name` varchar(255) NOT NULL,
              PRIMARY KEY (`gpb_id`),
              UNIQUE KEY `name` (`gpb_name`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Филиалы Газпрома';
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='{branch_table_comment}';
         """
         cur.execute(SQL)
         conn.commit()
