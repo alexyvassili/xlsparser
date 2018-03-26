@@ -8,6 +8,9 @@ from config import GpXlsConfig
 
 class GpXlsParser:
     def __init__(self, file: str, config: GpXlsConfig):
+        # приходится хранить у себя объект конфига, так как иногда нужно подменить
+        # конфигурацию полей "на лету", поэтому свойства полей реализованы
+        # через @property
         self.config_obj = config
         self.file = file  # full path
         self.filename = os.path.basename(file)
@@ -23,11 +26,13 @@ class GpXlsParser:
 
     @property
     def key_field(self):
-        return self.config['key_field']  # ключевое поле - инвентарный номер, он всегда есть, по нему делаем фильтр
+        """ключевое поле - инвентарный номер, он всегда есть, по нему делаем фильтр"""
+        return self.config['key_field']
 
     @property
     def name_field(self):
-        return self.config['name_field']  # поле названи - по нему делаем фильтр
+        """ поле названия - по нему делаем фильтр если в инв. номере есть мусор"""
+        return self.config['name_field']
 
     @property
     def fields(self):
@@ -114,6 +119,7 @@ class GpXlsParser:
         self.skip += len(header)
         # корректируем смещение, так как пропускаем исходную шапку
         self.delta -= 1
+        # заново парсим файл, уже без шапки, припиливаем к нему свою сгенерированную ранее
         df = pd.read_excel(self.file, skiprows=self.skip, index_col=None, header=None, dtype=str, names=new_index)
         return df
 
@@ -122,7 +128,7 @@ class GpXlsParser:
         для логирования: пишем поля, которые не смапились
         (есть в настройках, но не найдены в реальном файле)
         если не все ожидаемые поля найдены в файле, ничего не делаем,
-        хотя можно бы бросить исключение.
+        хотя можно бы бросить исключение(и сейчас оно бросается).
         """
         unmapped = set(self.fields) - set(self.df.columns)
         logging.debug(f'FIELDS: {set(self.fields)}')
@@ -134,7 +140,6 @@ class GpXlsParser:
             try:
                 self.config = self.config_obj.get_alter_config(self.file)
             except KeyError:
-                # TODO: вот здесь можно бросить исключение
                 logging.info('NO VARIABLE FIELDS')
                 raise ValueError(f'Mapping Error: Unmapped fields: {unmapped}')
             else:
@@ -146,6 +151,8 @@ class GpXlsParser:
         # под шапкой бывает нумерация столбцов
         # идем снизу и ищем строку где все значения содержат только цифры.
         # удаляем ее и все строки выше
+        # начинаем с пятой строки, просто потому что файлов с бОльшим количеством
+        # служебных строк нет
         for row in range(5, -1, -1):
             if all([i.isdigit() for i in self.df.loc[row] if type(i) == str]):
                 logging.info(f'Skipping first {row+1} strings...')
@@ -154,7 +161,7 @@ class GpXlsParser:
 
     def _clear_df(self):
         """смотрим в каком столбце больше нанов и по нему делаем drop
-         инвентарный номер, либо наименование, потому что то там, то там
+         это либо инвентарный номер, либо наименование, потому что то там, то там
          попадаются слова типа Итого, в зависимости от файла.
          на данный момент потери всего три элемента (в одной таблице фильтруем по имени,
          а там у трех элементов нет имени)"""
@@ -220,7 +227,7 @@ class GpXlsParser:
         self.df['bkf_filename'] = self.filename
         self.df.name = self.config['branch_name']
 
-    def parse(self, queue=None):
+    def parse(self):
         print('Parsing {}...'.format(self.filename))
         self.df = self._findheader()
         # определяем заголовок из нескольких строк, если он есть
@@ -228,13 +235,6 @@ class GpXlsParser:
         # если индекс многострочный - переписываем его
         if self.multirow:
             self.df = self._rewrite_index()
-        if queue:
-            queue.put(self)
-        else:
-            return self  # FIXME: ну тут такой себе дизайн получился (см. XlsIterator)
-
-    def process(self):
-        print('Processing {}...'.format(self.filename))
         # проверяем, все ли поля найдены
         self._mapped()
         # удаляем нумерацию столбцов и прочий мусор в шапке

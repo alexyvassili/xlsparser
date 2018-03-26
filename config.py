@@ -3,8 +3,8 @@ import pandas as pd
 import os
 from db import open_db, close_db
 
-gp_branches_table = 'Gp_branches'
-bkf_table = 'Branch_key_facilities'
+gp_branches_table = 'bkf_Gp_branches'
+bkf_table = 'bkf_Branch_key_facilities'
 startdir = "/mnt/data/python/antirutina/Нормирование/Основные средства ДО"
 BLACKLIST = ['Газпром добыча Краснодар', 'probe', '~$', '.~']
 config_file = 'fields.csv'
@@ -37,6 +37,7 @@ class GpXlsConfig:
         return config
 
     def get_alter_config(self, filename):
+        """У некоторых филиалов поля в файлах отличаются. Поэтому приходится держать альтернативную конфигурацию"""
         branch_name = filename.split(self.startdir)[1].split('/')[1]  # имя верхней папки
         config = self.get_branch_fields(branch_name + ALTER_CONFIG_SUFFIX)
         config['branch_name'] = branch_name
@@ -54,7 +55,6 @@ class GpXlsConfig:
                                if 'decimal' in self.fields['TYPE'][f].lower()],
         }
         return config
-
 
     def create_bkf_table(self):
         cur, conn = open_db()
@@ -111,8 +111,10 @@ class BranchConfig:
 
     @property
     def branches_indexes(self):
+        """здесь делается селект, так как это поле запрашивается в скрипте только однажды"""
         cur, conn = open_db()
         SQL = f"""SELECT * FROM {self.gp_branches_table}"""
         cur.execute(SQL)
         branches_indexes = {br['gpb_name']: br['gpb_id'] for br in cur}
+        close_db(cur, conn)
         return branches_indexes
