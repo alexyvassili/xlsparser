@@ -5,8 +5,8 @@ from db import open_db, close_db
 
 gp_branches_table = 'Gp_branches'
 bkf_table = 'Branch_key_facilities'
-startdir = "/mnt/data/python/antirutina/Нормирование/Основные средства ДО"
-BLACKLIST = ['Газпром добыча Краснодар', 'probe', '~$', '.~']
+startdir = ""
+BLACKLIST = []
 config_file = 'fields.csv'
 ALTER_CONFIG_SUFFIX = '//add'  # суффикс для колонки с альтернативным набором полей
 NEW_STRING_SEPARATOR =  '$$'# новая строка в csv конфиге отделяется через $$ чтобы удобнее было набирать
@@ -94,7 +94,7 @@ class BranchConfig:
             `gpb_name` varchar(255) NOT NULL,
              PRIMARY KEY (`gpb_id`),
              UNIQUE KEY `name` (`gpb_name`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='Филиалы Газпрома';
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='';
         """
         cur.execute(SQL)
         conn.commit()
