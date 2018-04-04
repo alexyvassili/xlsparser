@@ -136,12 +136,16 @@ class GpXlsParser:
             # если не получилось смапить все поля, возможно в настройках есть второй столбец
             # с тем же именем филиала и суффиксом  '//add', пробуем подменить config на него
             logging.info(f'UNMAPPED: {unmapped}')
+            if self.config['is_alter']:
+                logging.info('WE HAVE ALREADY ALTER CONFIG, BUT NOT ALL FIELDS WAS MAPPED. RAISE EXCEPTION.')
+                raise ValueError(f'Mapping error in alter configuration (maybe error in main configuration?)'
+                                 f'. Mapping Error: Unmapped fields: {unmapped}')
             logging.info('TRYING VARIABLE FIELDS')
             try:
                 self.config = self.config_obj.get_alter_config(self.file)
             except KeyError:
                 logging.info('NO VARIABLE FIELDS')
-                raise ValueError(f'Mapping Error: Unmapped fields: {unmapped}')
+                raise ValueError(f'Unable to find alter configuration. Mapping Error: Unmapped fields: {unmapped}')
             else:
                 self._mapped()
         else:

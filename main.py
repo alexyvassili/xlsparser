@@ -22,12 +22,12 @@ class XlsIterator:
     Класс был сделан для того, чтобы было удобно ходить по списку в юпитер ноутбуке, начиная с разных
     значений и получая по одному датафрейму.
     """
-    def __init__(self, filenames, start=0):
+    def __init__(self, filenames, start=0, recreate_tables=True):
         print('Initializing...')
         self.current = start
         self.filenames = filenames
         self.end = len(filenames)
-        self.config = GpXlsConfig()
+        self.config = GpXlsConfig(recreate_tables=recreate_tables)
 
     def __iter__(self):
         return self

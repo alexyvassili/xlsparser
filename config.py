@@ -12,26 +12,32 @@ NEW_STRING_SEPARATOR =  '$$'# новая строка в csv конфиге от
 
 class GpXlsConfig:
     """Считывает файл конфигурации с полями, хранит маппер"""
-    def __init__(self, startdir=startdir, csv=config_file):
+    def __init__(self, startdir=startdir, csv=config_file, recreate_tables=True):
+        """recreate tables позволяет парсить xls по одному в отладочных целях, не удаляя при инициализации
+           таблицы, уже загруженные в бд.
+        """
         logging.info('INITIALIZE CONFIG')
         branch_config = BranchConfig(startdir, gp_branches_table)
-        logging.info('CREATING BRANCH TABLE')
-        branch_config.create_branch_table()
-        logging.info('UPLOADING GP_BRANCHES')
-        branch_config.fill_gp_branches()
+        if recreate_tables:
+            logging.info('CREATING BRANCH TABLE')
+            branch_config.create_branch_table()
+            logging.info('UPLOADING GP_BRANCHES')
+            branch_config.fill_gp_branches()
         logging.info(f'LOADING FIELDS CONFIG FROM {csv}')
         fields = pd.read_csv(os.path.join(startdir, csv), sep=';', index_col=0, encoding='cp1251')
         self.fields = fields.applymap(lambda x: x.replace(NEW_STRING_SEPARATOR, '\n') if type(x) == str else x)
         self.branches_indexes = branch_config.branches_indexes
         self.startdir = startdir
-        logging.info('CREATING BKF TABLE')
-        self.create_bkf_table()
+        if recreate_tables:
+            logging.info('CREATING BKF TABLE')
+            self.create_bkf_table()
 
     def get_config(self, filename):
         branch_name = filename.split(self.startdir)[1].split('/')[1]  # имя верхней папки
         config = self.get_branch_fields(branch_name)
         config['branch_name'] = branch_name
         config['branch_id'] = self.branches_indexes[branch_name]
+        config['is_alter'] = False
         return config
 
     def get_alter_config(self, filename):
@@ -40,6 +46,7 @@ class GpXlsConfig:
         config = self.get_branch_fields(branch_name + ALTER_CONFIG_SUFFIX)
         config['branch_name'] = branch_name
         config['branch_id'] = self.branches_indexes[branch_name]
+        config['is_alter'] = True
         return config
 
     def get_branch_fields(self, branch_name):
